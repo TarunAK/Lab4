@@ -26,7 +26,13 @@ void ConfigNVIC(){
 	//clearing pending requests
 	NVIC_ClearPendingIRQ(PORT1_IRQn);
 	//Enabling Interrupts
-	NVIC_EnableIRQ(PORT1_IRQn);	
+	NVIC_EnableIRQ(PORT1_IRQn);
+    //Setting NVIC Priority for timer
+    NVIC_SetPriority(TA0_N_IRQn,2);
+    //clear pending requests
+    NVIC_ClearPendingIRQ(TA0_N_IRQn);
+    //Enable Interrutps
+    NVIC_EnableIRQ(TA0_N_IRQn);
 }
 
 void EnableGlobalInterrupts(){__ASM("CPSIE I");}
@@ -82,8 +88,9 @@ void TA0_N_IRQHandler(void){
 }
 
 Void ConfigTimerA(){
-	TA0CTL |= 0x0166;
-	TA0CTL &= ~ 0x0291;
+	TA0CTL |= 0x0162;
+	TA0CTL &= ~ 0x0295;
+    TA0CTL = 0xFFFF;
 }
 
 
