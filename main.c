@@ -5,14 +5,14 @@ int ChosenLed = 0;
 void ConfigInputs(){
 	//setting input as Gpio
 	P1SEL0 &= ~(0x12);
-	P1SEL1 &= ~(Ox12);
+	P1SEL1 &= ~(0x12);
 
 	//Setting pins as input	
-	P1DIR &= ~(Ox12);
+	P1DIR &= ~(0x12);
 	
 	//Enabling pull up resistors
 	P1REN |= 0x12;
-	P1OUT |= Ox12;
+	P1OUT |= 0x12;
 
 	//turning on interupt at pin level
 	P1IFG &= 0x12;
@@ -88,8 +88,9 @@ void TA0_N_IRQHandler(void){
 }
 
 Void ConfigTimerA(){
-	TA0CTL |= 0x0162;
-	TA0CTL &= ~ 0x0293;
+
+	TA0CTL |= 0x0163;
+	TA0CTL &= ~ 0x0294;
     //TA0CTL = 0xFFFF;
 }
 
@@ -98,6 +99,7 @@ Void ConfigTimerA(){
 int main(){
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 	ConfigInputs();
+	ConfigLED();
 	ConfigTimerA();
 	ConfigNVIC();
 	EnableGlobalInterrupts();
