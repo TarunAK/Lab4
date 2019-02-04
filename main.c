@@ -50,9 +50,9 @@ int ConfigLED(){
 	P1DIR |= 0x01;
 	P2DIR |= 0x07;
 
-	//Configuring drive strength
-	P1DS &= ~0x01;
-	P2DS &= ~0x07;	
+//    //Configuring drive strength
+//    P1DS &= ~0x01;
+//    P2DS &= ~0x07;
 	
 	//Setting Initial state;
 	P1OUT &= ~0x01;
@@ -84,7 +84,7 @@ void TA0_N_IRQHandler(void){
 	}else{
 		i = (i+1)%8;
 		P2OUT = ((P2OUT & ~(0x07))|LedStates[i]);
-	}
+    }
 }
 
 Void ConfigTimerA(){
