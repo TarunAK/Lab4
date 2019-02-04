@@ -89,8 +89,8 @@ void TA0_N_IRQHandler(void){
 
 Void ConfigTimerA(){
 	TA0CTL |= 0x0162;
-	TA0CTL &= ~ 0x0295;
-    TA0CTL = 0xFFFF;
+	TA0CTL &= ~ 0x0293;
+    //TA0CTL = 0xFFFF;
 }
 
 
