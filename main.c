@@ -1,44 +1,45 @@
 #include "msp.h"
 
-volatile uint8_t state = 0x00;
+volatile uint8_t state = 0x00; // State between LEDs
 //volatile uint8_t rgb_state = 0x00;
 
 void configSwitches(void)
 {
-    P1DIR &= ~0x12;
-    P1REN |= 0x12;
-    P1OUT |= 0x12;
+    P1DIR &= ~0x12; // Setting direction to input
+    P1REN |= 0x12; // Enabling internal resistance
+    P1OUT |= 0x12; // Active low signal, so setting
 }
 
 void configSwitchInterrupts(void)
 {
-    P1IES |= 0x12;
-    P1IFG &= ~0x12;
-    P1IE |= 0x12;
+    P1IES |= 0x12; // Interrupt Edge Select set to active low
+    P1IFG &= ~0x12; // Interrupt Flag Register cleared to prevent interrupt prematurely
+    P1IE |= 0x12; // Interrupt Enable Register set 1 to enable device (i.e. switch) interrupts
+}
 }
 
 void configNVIC(void)
 {
    NVIC_SetPriority(PORT1_IRQn, 2);
-   NVIC_ClearPendingIRQ(PORT1_IRQn);
-   NVIC_EnableIRQ(PORT1_IRQn);
+   NVIC_ClearPendingIRQ(PORT1_IRQn); // Clearing any pending interrupts
+   NVIC_EnableIRQ(PORT1_IRQn); // Enabling interrupts
 }
 
 void configGlobalInterrupts(void)
 {
-    __ASM("CPSIE I");  
+    __ASM("CPSIE I"); // Globally enable interrupts in CPU
 }
 
 void configLED(void)
 {
-    P1DIR |= 0x01;
-    P2DIR |= 0x07;
+    P1DIR |= 0x01; // Setting direction to output for red LED
+    P2DIR |= 0x07; // Setting direction to output for RGB LED
 
-    P1DS &= ~0x01;
-    P2DS &= ~0x07;
+    P1DS &= ~0x01; // Regular drive strength for red LED
+    P2DS &= ~0x07; // Regular drive strength for RGB LED
 
-    P1OUT &= ~0x01;
-    P2OUT &= ~0x07;
+    P1OUT &= ~0x01; // Initalizing to red LED to off
+    P2OUT &= ~0x07; // Initalizing to RGB LED to off
 }
 
 void configTimer(void)
@@ -59,11 +60,11 @@ void configTimer(void)
 
 int main(void)
 {
-    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; // Disable watchdog timer
+    	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; // Disable watchdog timer
 	
-	// Port 1 GPIO
-    P1SEL0 &= ~0x13;
-    P1SEL1 &= ~0x12;
+    	// Port 1 GPIO
+    	P1SEL0 &= ~0x13;
+    	P1SEL1 &= ~0x12;
 	
 	// Port 2 GPIO
 	P2SEL0 &= ~0x07;
@@ -84,14 +85,14 @@ int main(void)
 
 void PORT1_IRQHandler(void)
 {
-	static uint8_t pr = 0x01;
+	static uint8_t pr = 0x01; // Pause/Resume flag
 	
-	if ((P1IFG & 0x02) != 0) 
+	if ((P1IFG & 0x02) != 0) // If Button P1.1 pressed
 	{
 		P1IFG &= ~0x02;
 		state ^= 0x01;
 	}
-	else if ((P1IFG & 0x10) != 0) 
+	else if ((P1IFG & 0x10) != 0) // If Button P1.4 pressed
 	{
 		P1IFG &= ~0x10;
 		pr ^= 0x01;
@@ -101,7 +102,7 @@ void PORT1_IRQHandler(void)
 		}
 		else 
 		{
-			TA0CTL |= MC_0;
+			TA0CTL |= MC_0; // Stop timer
 		}
 		
 	}
