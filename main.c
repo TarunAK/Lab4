@@ -1,134 +1,100 @@
-#include "msp.h"
+#include <msp.h>
+#include <stdint.h>
 
-volatile uint8_t state = 0x00; // State between LEDs
-//volatile uint8_t rgb_state = 0x00;
+int ChosenLed = 0;
+void ConfigInputs(){
+	//setting input as Gpio
+	P1SEL0 &= ~(0x12);
+	P1SEL1 &= ~(Ox12);
 
-void configSwitches(void)
-{
-    P1DIR &= ~0x12; // Setting direction to input
-    P1REN |= 0x12; // Enabling internal resistance
-    P1OUT |= 0x12; // Active low signal, so setting
-}
-
-void configSwitchInterrupts(void)
-{
-    P1IES |= 0x12; // Interrupt Edge Select set to active low
-    P1IFG &= ~0x12; // Interrupt Flag Register cleared to prevent interrupt prematurely
-    P1IE |= 0x12; // Interrupt Enable Register set 1 to enable device (i.e. switch) interrupts
-}
-}
-
-void configNVIC(void)
-{
-   NVIC_SetPriority(PORT1_IRQn, 2);
-   NVIC_ClearPendingIRQ(PORT1_IRQn); // Clearing any pending interrupts
-   NVIC_EnableIRQ(PORT1_IRQn); // Enabling interrupts
-}
-
-void configGlobalInterrupts(void)
-{
-    __ASM("CPSIE I"); // Globally enable interrupts in CPU
-}
-
-void configLED(void)
-{
-    P1DIR |= 0x01; // Setting direction to output for red LED
-    P2DIR |= 0x07; // Setting direction to output for RGB LED
-
-    P1DS &= ~0x01; // Regular drive strength for red LED
-    P2DS &= ~0x07; // Regular drive strength for RGB LED
-
-    P1OUT &= ~0x01; // Initalizing to red LED to off
-    P2OUT &= ~0x07; // Initalizing to RGB LED to off
-}
-
-void configTimer(void)
-{
-	TA0CTL |= TACLR; // Clear Timer A
-	TA0CTL &= ~TAIFG; // Clear pending Timer A interrupt flag
-	TA0CTL =  MC_1 + ID_0 + TASSEL_1 + TAIE;
-//	TA0CTL |= MC_1; // Up Mode
-//	TA0CTL |= ID_0; // Divided by 1
-//	TA0CTL |= TASSEL_1; // Auxillery Clock
-//	TA0CTL |= TAIE; // Timer A Interrupt Enable
+	//Setting pins as input	
+	P1DIR &= ~(Ox12);
 	
-	TA0CCTL0 &= ~CCIFG;  // Clear pending Capture/Compare interrupt flag
-	TA0CCTL0 |= CCIE; // Enable Capture/Compare enable
+	//Enabling pull up resistors
+	P1REN |= 0x12;
+	P1OUT |= Ox12;
 
-	TA0CCR0 |= 0x0f; // Upper limit
+	//turning on interupt at pin level
+	P1IFG &= 0x12;
+	P1IES |= 0x12;
+	P1IE |= 0x12;
 }
 
-int main(void)
-{
-    	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD; // Disable watchdog timer
-	
-    	// Port 1 GPIO
-    	P1SEL0 &= ~0x13;
-    	P1SEL1 &= ~0x12;
-	
-	// Port 2 GPIO
+void ConfigNVIC(){
+	//Setting NVIC Priority
+	NVIC_SetPriority(PORT1_IRQn,2);
+	//clearing pending requests
+	NVIC_ClearPendingIRQ(PORT1_IRQn);
+	//Enabling Interrupts
+	NVIC_EnableIRQ(PORT1_IRQn);	
+}
+
+void EnableGlobalInterrupts(){__ASM("CPSIE I");}
+
+int ConfigLED(){
+	//Configuring LED's as outputs
+		//Port 1
+	P1SEL0 &= ~0x01;
+	P1SEL1 &= ~0x01;
+		//Port 2
 	P2SEL0 &= ~0x07;
 	P2SEL1 &= ~0x07;
+
+	//Configuring direction
+	P1DIR |= 0x01;
+	P2DIR |= 0x07;
+
+	//Configuring drive strength
+	P1DS &= ~0x01;
+	P2DS &= ~0x07;	
 	
-	configSwitches();
-	configSwitchInterrupts();
-	configNVIC();
-	configGlobalInterrupts();
-	configLED();
-	configTimer();
-	
-    while(1)
-    {
-        __ASM("WFI"); // Wait for interrupt, else sleep
-    }
+	//Setting Initial state;
+	P1OUT &= ~0x01;
+	P2OUT &= ~0x07;
 }
 
-void PORT1_IRQHandler(void)
-{
-	static uint8_t pr = 0x01; // Pause/Resume flag
-	
-	if ((P1IFG & 0x02) != 0) // If Button P1.1 pressed
-	{
+void PORT1_IRQHandler(void){
+	//Checks to which of the 2 buttons caused the interrrupt, if it it was
+	//P1.1, causes the selected led to switch, other resumes/pauses
+	if((P1IFG & 0x02) !=0){
 		P1IFG &= ~0x02;
-		state ^= 0x01;
-	}
-	else if ((P1IFG & 0x10) != 0) // If Button P1.4 pressed
-	{
+		if(ChosenLed ==0){
+			ChosenLed = 1;
+		}else{
+			ChosenLed = 0;
+		}
+	} else if((P1IFG & 0x10) !=0){
 		P1IFG &= ~0x10;
-		pr ^= 0x01;
-		if (pr == 1) 
-		{
-			TA0CTL |= MC_1;
-		}
-		else 
-		{
-			TA0CTL |= MC_0; // Stop timer
-		}
-		
+		TA0CTL ^= 0x0002;
 	}
-    NVIC_ClearPendingIRQ(PORT1_IRQn);
+
 }
 
-void TA0_N_IRQHandler(void)
-{
-	static uint8_t rgb_state = 0x0;
-	if (TAIFG == 1)
-	{
-		TA0CTL &= ~TAIFG;
-		if (state == 0x00)
-		{
-			P1OUT ^= 0x01;
-		}
-		else
-		{
-			if (rgb_state > 0x07) // state rollover when rgb value is greater than 7
-			{
-				rgb_state = 0x00; // reset to 0
-			}
-			P2OUT &= ~0x07;
-			P2OUT |= rgb_state; // setting rgb value (between 0 and 7)
-			rgb_state++; // change colours
-		}
-	}	
-	TA0CTL &= ~TAIFG; // Clear pending Timer A interrupt flag
+void TA0_N_IRQHandler(void){
+	static int i = 0;
+	static int LedStates[8] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07};
+	if(ChosenLed == 0){
+		P1OUT ^= 0x01;
+	}else{
+		i = (i+1)%8;
+		P2OUT = ((P2OUT & ~(0x07))|LedStates[i]);
+	}
+}
+
+Void ConfigTimerA(){
+	TA0CTL |= 0x0166;
+	TA0CTL &= ~ 0x0291;
+}
+
+
+
+int main(){
+	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
+	ConfigInputs();
+	ConfigTimerA();
+	ConfigNVIC();
+	EnableGlobalInterrupts();
+	while(1){
+		__ASM("WFI");
+	}
 }
